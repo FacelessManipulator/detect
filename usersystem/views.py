@@ -346,7 +346,7 @@ def opt_user(request):
             try:
                 u = User.objects.get(username=uid).userBaseInfo
                 return JsonResponse({'status': 201, 'msg': '查找成功', 'content': u.get_dict(False)})
-            except:
+            except Exception,e:
                 return JsonResponse({'status': 503, 'msg': '查找失败'})
         else:
             teachers = UserBaseInfo.objects.filter(group='teacher')

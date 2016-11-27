@@ -42,6 +42,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'usersystem',
     'experiment',
+    'detect',
 ]
 
 MIDDLEWARE_CLASSES = [
@@ -82,7 +83,7 @@ WSGI_APPLICATION = 'physicLab1000.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'physicLab1000',
+        'NAME': 'facedetect',
         'USER': 'root',
         'PASSWORD': 'Zxcuahsid1',
         'HOST': '127.0.0.1',

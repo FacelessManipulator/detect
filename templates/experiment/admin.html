@@ -366,6 +366,18 @@
                       <div id="student-report-grid"></div>
                     </div>
                   </div>
+
+                  <div class="row block">
+                    <div class="title">
+                      <span>人脸录入报告</span>
+                      <div class="btn-group" style="float:right">
+                        <button class="btn btn-info btn-sm" ng-click="search_student()">刷新</button>
+                      </div>
+                    </div>
+                    <div class="content">
+                      <div id="student-face-grid"></div>
+                    </div>
+                  </div>
                 </div>
                 <div class="col-md-3">
                   <div class="row block">
@@ -395,6 +407,16 @@
                       </tr>
                       </tbody>
                     </table>
+                  </div>
+
+                  <div class="row block">
+                    <div class="title">
+                      <span>实验文档上传</span>
+                    </div>
+                    <div ngf-select="uploadFiles(search_result.username,$files)" ngf-drop="uploadFiles(search_result.username,$files)" ngf-multiple="true"
+                         ngf-max-size="50MB" style="height:200px;" class="drop-box">
+                      <span id="image-upload-status">拖拽文件至此上传</span>
+                    </div>
                   </div>
                 </div>
 

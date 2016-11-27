@@ -62,7 +62,7 @@ class WebsiteConfig(models.Model):
                 'welcome_word': self.welcome_word,
                 'start_week_day': self.start_week_day,
                 'report_editing_day': self.report_editing_day,
-                'default_head_img':  '/static/images/head-img-default.jpg' if self.default_head_img._file is None else self.default_head_img.url,
+                'default_head_img':  '/static/images/head-img-default.jpg' if self.default_head_img.name == '' else self.default_head_img.url,
                 'report_tags': [tag.get_dict() for tag in self.tag.all()],
                 'show_extra_block':self.show_extra_block,
                 'institute': [ins.get_dict() for ins in Institute.objects.all()]}
@@ -176,6 +176,7 @@ class UserBaseInfo(models.Model):
                 report_set = self.report.all()
                 reports = [report.get_dict() for report in report_set]
                 dic['reports'] = reports
+                dic['faces'] = [face.get_dict() for face in self.faces.filter(report=None)]
         return dic
 
 
@@ -289,3 +290,5 @@ class AttachFile(models.Model):
         except:
             pass
         return dic
+
+

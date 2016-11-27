@@ -68,7 +68,7 @@ def get_experiment(request):
             try:
                 experiment = Experiment.objects.get(eid=eid)
                 return JsonResponse({'status': 201, 'content': experiment.get_dict(False, True)})
-            except:
+            except Exception,e:
                 return JsonResponse({'status': 500})
         experiments = user.experiment.all()
         experiments = [experiment.get_dict(simple=False) for experiment in experiments]

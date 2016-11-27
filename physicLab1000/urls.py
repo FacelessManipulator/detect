@@ -29,6 +29,7 @@ urlpatterns = [
     url(r'^setting', user_views.settings),
     url(r'^user/', include('usersystem.urls')),
     url(r'^experiment/', include('experiment.urls')),
-    url(r'^api-auth/', include('rest_framework.urls',namespace='rest_framework')),
-    url(r'^captcha/',include('captcha.urls')),
+    url(r'^detect/', include('detect.urls')),
+    url(r'^api-auth/', include('rest_framework.urls', namespace='rest_framework')),
+    url(r'^captcha/', include('captcha.urls')),
 ]

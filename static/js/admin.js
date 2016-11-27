@@ -775,6 +775,98 @@ adminApp.controller('adminCtrl',function($scope,$http, Upload,$compile){
                 ]
         });
     };
+    $scope.generateFaceGrid = function(id, data){
+        $("#" + id + "-grid").igGrid({
+            primaryKey: "fid",
+            width: '100%',
+            columns: [
+                    { headerText: "path", key: "path", dataType: "string", width: "0%", hidden:true },
+                    { headerText: "fid", key: "fid", dataType: "string", width: "0%", hidden:true },
+                    { key: "img", headerText: "图像", dataType: "string",unbound:true, width: "60%",
+                      template:"<img src='${path}' style='width:200px;height=200px;'/>" },
+                    { headerText: "录入时间", key: "log_time", dataType: "date", width: "20%" },
+                    { headerText: "识别时间", key: "recg_time", dataType: "string", width: "20%" },
+                ],
+            autofitLastColumn: true,
+            autoGenerateColumns: false,
+            dataSource: data,
+            showDoneCancelButtons: true,
+            autoCommit: true,
+            requestError: function(evt, ui) {console.log("request error")},
+            features: [
+            //TODO: 为防止批改混乱，在前端防止了管理员对成绩的修改
+            //TODO: 服务端层面已经禁止
+                    {
+						name: "Updating",
+						enableAddRow: false,
+//						//TODO: 为了安全这里把删除功能也关了
+						enableDeleteRow: true,
+						editMode: "row",
+//                        editRowEnded: function(evt, ui){
+//                            if(!ui.rowAdding && ui.update){
+//                                //$scope.modifyData('/user/report/modify', ui.values);
+//                            }
+//                        },
+//                        rowAdded: function(evt, ui){
+//                            ui.values.uid = $scope.search_result.username;
+//                            $scope.modifyData('/user/report/add',ui.values,$scope.search_result.content.reports,"#" + id + "-grid");
+//                        },
+                        rowDeleted: function(evt, ui){
+                            $scope.modifyData('/detect/face/delete', {'fid':ui.rowID});
+                        },
+						columnSettings: [
+							{
+							    columnKey: "path",
+								editorType: 'text',
+								readOnly: true,
+								validation: true,
+							},
+							{
+							    columnKey: "img",
+								editorType: 'text',
+								readOnly: true,
+								validation: true,
+							},
+							{
+								columnKey: "log_time",
+								editorType: 'date',
+								readOnly: true,
+								validation: true,
+							},
+							{
+								columnKey: "recg_time",
+								editorType: 'text',
+//								required: false,
+//								validation: true,
+								readOnly: true,
+							},
+							{
+								columnKey: "is_corrected",
+								editorType: 'combo',
+								readOnly: true,
+//								required: true,
+//								editorOptions: {
+//                                    dataSource: $scope.active_choice,
+//                                    valueKey: "key",
+//                                    textKey: "value",
+//                                    mode: "dropdown",
+//								},
+							}
+						],
+					},
+                    {
+                        name: "Sorting",
+                        type: "local",
+                    },
+                    {
+                        name: 'Paging',
+                        type: "local",
+                        pageSize: 10,
+                        pageSizeDropDownLocation : "inpager",
+                    },
+                ]
+        });
+    };
     $scope.changeToTeacherList = function(){
         if($scope.user.loaded){
             $("#teacher-grid").igGrid("dataSourceObject", $scope.user.content.teacher);
@@ -1111,10 +1203,14 @@ adminApp.controller('adminCtrl',function($scope,$http, Upload,$compile){
             $("#student-experiment-grid").igGrid('dataBind');
             $("#student-report-grid").igGrid("dataSourceObject", $scope.search_result.content.reports);
             $("#student-report-grid").igGrid('dataBind');
+            $("#student-face-grid").igGrid("dataSourceObject", $scope.search_result.content.faces);
+            $("#student-face-grid").igGrid('dataBind');
         }
         else{
             $scope.generateExperimentGrid("student-experiment", $scope.search_result.content.experiments);
             $scope.generateReportGrid("student-report", $scope.search_result.content.reports);
+
+            $scope.generateFaceGrid('student-face', $scope.search_result.content.faces);
             $scope.search_student_success = true;
         }
     };
@@ -1174,6 +1270,28 @@ adminApp.controller('adminCtrl',function($scope,$http, Upload,$compile){
             $scope.ExperimentImportCsvDialog.open=true;
         }
         reader.readAsText(file,'gb2312');//默认utf-8编码
+    };
+    $scope.uploadFiles = function(username, files){
+        if ( files && files.length) {
+           for (var i = 0; i < files.length; i++) {
+              Upload.upload({
+                url: '/detect/upload',
+                data: {file: files[i], 'uid': username},
+                }).then(function (resp) {
+                    if(resp.data.status == 201){
+                        $("#image-upload-status").html("图片上传成功");
+                    }
+                    else{
+                        $("#image-upload-status").html("文件上传失败");
+                    }
+                }, function (resp) {
+                    $("#image-upload-status").html("图片上传失败:"+resp.status);
+                }, function (evt) {
+                    var progressPercentage = parseInt(100.0 * evt.loaded / evt.total);
+                    $("#image-upload-status").html('上传进度: ' + progressPercentage + '% ');
+                });
+           }
+      }
     };
     $scope.resetPassword = function(username){
         $http.get('/user/reset-password?username='+username,{}).then(

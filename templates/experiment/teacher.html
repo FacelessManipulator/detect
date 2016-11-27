@@ -26,6 +26,10 @@
         var scope = angular.element($("#teacherApp")).scope();
         scope.changeReport(rid);
     };
+    var changeFaceReport = function(rfid){
+        var scope = angular.element($("#teacherApp")).scope();
+        scope.changeFaceReport(rfid);
+    };
     var move_tag = function(tag){
         var style = tag.getAttribute('style');
         var tid = tag.getAttribute('tag-id');
@@ -37,6 +41,8 @@
 {% endblock %}
 {% block js %}
 "angularjs/1.5/angular-sanitize.min.js,"+
+"angularjs/1.5/ng-file-upload-shim.min.js,"+
+"angularjs/1.5/ng-file-upload.min.js,"+
 "angularjs/1.5/angular-drag.js,"+
 "angularjs/1.5/angular-awesome-slider.min.js,"+
 "angularjs/1.5/ui-bootstrap-tpls-0.13.0.js,"+
@@ -61,6 +67,10 @@
     var changeReport = function(rid){
         var scope = angular.element($("#teacherApp")).scope();
         scope.changeReport(rid);
+    };
+    var changeFaceReport = function(rfid){
+        var scope = angular.element($("#teacherApp")).scope();
+        scope.changeFaceReport(rfid);
     };
     var move_tag = function(tag){
         var style = tag.getAttribute('style');
@@ -95,6 +105,8 @@
                     <span class="span " ng-bind-html="'地点:'+selected_experiment.classroom"></span>
                 </div>
                 <button class="btn btn-full ng-class:{true:'btn-warning', false:'btn-inverse'}[page1 == 'report']" ng-click="correct()">批改报告</button>
+                <button class="btn btn-full ng-class:{true:'btn-warning', false:'btn-inverse'}[page1 == 'face_detect_report']" ng-click="">查看检测报告</button>
+
             </div>
         </div>
         <div class="col-xs-offset-3 col-md-offset-2 col-xs-9 col-md-10">
@@ -112,7 +124,7 @@
             </div>
             <div style="height:40px;" id="top"></div>
             <div class="row viewer">
-                <div class="container-fluid"  ng-show="page1=='report'">
+                <div class="container-fluid" ng-show="page1=='report'">
                     <div class="row block">
                         <a href="javascript:;" ng-click="changeReport(selected_report.rid)"><span style="font-size:29px" ng-bind-html="selected_report.experiment_name"></span></a>
                         <span style="font-size: 17px;color: #888;margin-left: 30px;" ng-bind-html="selected_report.experiment.week"></span>
@@ -475,12 +487,27 @@
                             <div class="row block">
                                 <div class="title">
                                     <span>学生列表</span>
-                  <div class="btn-group" style="float:right">
-                    <button class="btn btn-success btn-sm" ng-if="experiments.loaded" ng-click="exportExcel('report-grid')">导出Excel</button>
-                    <button class="btn btn-info btn-sm" ng-if="experiments.loaded" ng-click="changeExperiment(selected_experiment.eid)">刷新</button>
-                  </div>
+                                    <div class="btn-group" style="float:right">
+                                        <button class="btn btn-success btn-sm" ng-if="selected_experiment.content.models.status!='training'" ng-click="trainModel(selected_experiment.eid)">训练模型</button>
+                                        <button class="btn btn-success btn-sm" ng-if="selected_experiment.content.models.status=='training'" ng-click="trainModel(selected_experiment.eid)" disabled>训练中</button>
+                                        <button class="btn btn-success btn-sm" ng-if="experiments.loaded" ng-click="exportExcel('report-grid')">导出Excel</button>
+                                        <button class="btn btn-info btn-sm" ng-if="experiments.loaded" ng-click="changeExperiment(selected_experiment.eid)">刷新</button>
+                                    </div>
                                 </div>
                                 <div id="report-grid"></div>
+                            </div>
+
+                            <div class="row block">
+                                <div class="title">
+                                    <span>识别列表</span>
+                                    <div class="btn-group" style="float:right">
+                                        <button class="btn btn-warning btn-sm" ng-if="selected_experiment.content.models.status!='training'" ng-click="trainModel(selected_experiment.eid)">训练模型</button>
+                                        <button class="btn btn-success btn-sm" ng-if="selected_experiment.content.models.status=='training'" ng-click="trainModel(selected_experiment.eid)" disabled>训练中</button>
+                                        <button class="btn btn-success btn-sm" ng-if="experiments.loaded" ng-click="exportExcel('report-grid')">导出Excel</button>
+                                        <button class="btn btn-info btn-sm" ng-if="experiments.loaded" ng-click="changeExperiment(selected_experiment.eid)">刷新</button>
+                                    </div>
+                                </div>
+                                <div id="face-grid"></div>
                             </div>
                         </div>
                         <div class="col-md-3">
@@ -514,6 +541,16 @@
                             </div>
 
                             <div class="row block">
+                                <div class="title">
+                                    <span>实验文档上传</span>
+                                </div>
+                                <div ngf-select="uploadFiles(selected_experiment.eid,$files)" ngf-drop="uploadFiles(selected_experiment.eid,$files)" ngf-multiple="true"
+                                     ngf-max-size="50MB" style="height:200px;" class="drop-box">
+                                    <span id="report-file-upload-status">拖拽文件至此上传</span>
+                                </div>
+                            </div>
+
+                            <div class="row block">
                                 <div class="title">实验成绩分布</div>
                                 <div id="chart-report-grade"></div>
                             </div>
@@ -524,6 +561,32 @@
                             </div>
 
 
+                        </div>
+                    </div>
+                </div>
+                <div class="container-fluid" ng-show="page1=='face_detect_report'">
+                    <div class="row">
+                        <div class="col-md-9">
+                            <div class="row block">
+                                <div class="title">
+                                    <span>识别列表</span>
+                                    <div class="btn-group" style="float:right">
+                                        <button class="btn btn-success btn-sm" ng-if="experiments.loaded" ng-click="exportExcel('face-detected-grid')">导出Excel</button>
+                                        <button class="btn btn-info btn-sm" ng-if="experiments.loaded" ng-click="changeExperiment(selected_experiment.eid)">刷新</button>
+                                    </div>
+                                </div>
+                                <table id="face-detected-grid"></table>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="row block">
+                                <div class="title">未识别学生名单
+                                </div>
+                                <div ng-repeat="name in selected_face_report.content.unrecognized" class="content">
+                                  <div ng-bind-html="name"></a>
+                                </div>
+
+                            </div>
                         </div>
                     </div>
                 </div>

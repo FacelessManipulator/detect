@@ -5,7 +5,9 @@ from django.db import models
 from django.utils import timezone
 import datetime
 from usersystem.models import WebsiteConfig
-
+from detect.models import TrainedModel
+from django.core.exceptions import ObjectDoesNotExist
+from django.core.files.base import ContentFile
 
 class BaseExperiment(models.Model):
     bid = models.AutoField(primary_key=True)
@@ -76,6 +78,13 @@ class Experiment(models.Model):
             else:
                 dic['teacher'] = {}
             dic['base'] = self.base.get_dict()
+            try:
+                dic['models'] = self.trained.get_dict()
+            except ObjectDoesNotExist,e:
+                trained = TrainedModel.objects.create(exp=self)
+                trained.face_model.save('model.xml', ContentFile(""), save=True)
+                dic['models'] = self.trained.get_dict()
+            dic['detects'] = [detect.get_dict() for detect in self.analysis.all()]
         if attachReport:
             report_set = self.report.all()
             reports = [report.get_dict() for report in report_set]

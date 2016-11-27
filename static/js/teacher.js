@@ -1,7 +1,7 @@
 'use strict';
 
 var teacherApp = angular.module('physiclab.teacher',
-        ['angular-popups','ngSanitize', 'igniteui-directives',
+        ['angular-popups','ngSanitize', 'igniteui-directives','ngFileUpload',
         'ui.calendar','angular-drag','ui.bootstrap','angularAwesomeSlider']);
 teacherApp.config(function($httpProvider) {
     $httpProvider.defaults.xsrfCookieName = 'csrftoken';
@@ -14,7 +14,7 @@ teacherApp.config(function($httpProvider) {
         return angular.isObject(data) && String(data) !== '[object File]' ? $.param(data) : data;
     }];
 });
-teacherApp.controller('teacherCtrl',function($scope,$http, $compile,$timeout,uiCalendarConfig){
+teacherApp.controller('teacherCtrl',function($scope,$http, Upload,$compile,$timeout,uiCalendarConfig){
     $scope.page1 = 'all';
     $scope.page2 = '';
     $scope.editing_block = '';
@@ -25,6 +25,7 @@ teacherApp.controller('teacherCtrl',function($scope,$http, $compile,$timeout,uiC
         'principle_content':'','process_content':'','data_processing_content':'',
         'instrument_content':'','thinking_content':''};
     $scope.tag_grade = {};
+    $scope.selected_face_report = {};
     $scope.gradeSliderOption = {
         from: 1,
         to: 10,
@@ -437,6 +438,90 @@ teacherApp.controller('teacherCtrl',function($scope,$http, $compile,$timeout,uiC
                 ]
         });
     };
+
+
+    $scope.generateFaceGrid = function(id, data){
+        $("#" + id + "-grid").igGrid({
+            primaryKey: "rfid",
+            width: '100%',
+            columns: [
+                    { headerText: "rfid", key: "rfid", dataType: "string", width: "0%", hidden:true },
+                    { headerText: "origin_path", key: "origin_path", dataType: "string", width: "0%", hidden:true },
+                    { headerText: "result_path", key: "result_path", dataType: "string", width: "0%", hidden:true },
+                    { headerText: "原始图像", key: "img_origin", dataType: "string", width: "30%" ,
+                                    template:"<img src='${origin_path}' style='width:200px;height:200px;'/>"},
+                    { headerText: "识别图", key: "img_result", dataType: "string", width: "30%",
+                                    template:"<img src='${result_path}' style='width:200px;height:200px;'/>"},
+                    { headerText: "状态", key: "status", dataType: "string", width: "15%" },
+                    { headerText: "提交时间", key: "time", dataType: "date", width: "15%"},
+                    { key: "jump", headerText: "查看", dataType: "string",unbound:true, width: "10%",
+                                template:"<button class='btn btn-success btn-xs' onclick='changeFaceReport(${frid})'>查看</button>"},
+                ],
+            autofitLastColumn: true,
+            autoGenerateColumns: false,
+            dataSource: data,
+            showDoneCancelButtons: true,
+            autoCommit: false,
+            requestError: function(evt, ui) {console.log("request error")},
+            features: [
+                    {
+                        name: "Sorting",
+                        type: "local",
+                    },
+
+                    {
+                        name: 'Paging',
+                        type: "local",
+                        pageSize: 5,
+                        pageSizeDropDownLocation : "inpager",
+                    },
+                    {
+                        name: "Resizing"
+                    },
+                ]
+        });
+    };
+
+    $scope.generateFaceDetectedGrid =  function(data){
+        $("#face-detected-grid").igGrid({
+            primaryKey: "fid",
+            width: '100%',
+            columns: [
+                    { headerText: "fid", key: "fid", dataType: "string", width: "0%", hidden:true },
+                    { headerText: "path", key: "path", dataType: "string", width: "0%", hidden:true },
+                    { headerText: "头像", key: "img_origin", dataType: "string", width: "30%" ,
+                                    template:"<img src='${path}'  style='width:200px;height:200px;'/>"},
+                    { headerText: "姓名", key: "name", dataType: "string", width: "15%",},
+                    { headerText: "识别时间", key: "recg_time", dataType: "string", width: "30%",},
+                    { headerText: "可信率", key: "confident", dataType: "string", width: "15%" },
+                    { headerText: "提交时间", key: "log_time", dataType: "date", width: "15%"},
+                ],
+            autofitLastColumn: true,
+            autoGenerateColumns: false,
+            dataSource: data,
+            showDoneCancelButtons: true,
+            autoCommit: false,
+            requestError: function(evt, ui) {console.log("request error")},
+            features: [
+                    {
+                        name: "Sorting",
+                        type: "local",
+                    },
+
+                    {
+                        name: 'Paging',
+                        type: "local",
+                        pageSize: 5,
+                        pageSizeDropDownLocation : "inpager",
+                    },
+                    {
+                        name: "Resizing"
+                    },
+                ]
+        });
+    };
+
+
     $scope.generateDateGrid = function(id, data){
         $("#raw-grid-"+id).igGrid({
             width: '100%',
@@ -675,10 +760,13 @@ teacherApp.controller('teacherCtrl',function($scope,$http, $compile,$timeout,uiC
         if(!$scope.report_list_render){
             $scope.generateReportGrid('report', $scope.selected_experiment.content.reports);
             $scope.report_list_render = true;
+            $scope.generateFaceGrid('face', $scope.selected_experiment.content.detects);
         }
         else{
             $("#report-grid").igGrid("dataSourceObject", $scope.selected_experiment.content.reports);
             $("#report-grid").igGrid("dataBind");
+            $("#face-grid").igGrid("dataSourceObject", $scope.selected_experiment.content.detects);
+            $("#face-grid").igGrid("dataBind");
         }
     };
     $scope.submitGrade = function(){
@@ -762,6 +850,13 @@ teacherApp.controller('teacherCtrl',function($scope,$http, $compile,$timeout,uiC
         });
         $scope.generateGradeChat("chart2-report-grade");
         $scope.render_tags();
+    };
+    $scope.render_face_detect_report = function(){
+        $scope.page1 = 'face_detect_report';
+        $scope.generateFaceDetectedGrid($scope.selected_face_report.content.faces);
+    };
+    $scope.changeFaceReport = function(rfid){
+        $scope.freshData('/detect/report?rfid='+rfid,$scope.selected_face_report,$scope.render_face_detect_report);
     };
     $scope.correct = function(){
         if($scope.selected_report.is_corrected)
@@ -913,6 +1008,31 @@ teacherApp.controller('teacherCtrl',function($scope,$http, $compile,$timeout,uiC
                      'tooltip-append-to-body': true});
         element.attr({'class': event.className+" fc-day-grid-event fc-event fc-start fc-end fc-draggable"});
         $compile(element)($scope);
+    };
+    $scope.trainModel = function(eid){
+        $scope.modifyData('/detect/update', {'eid':eid});
+    };
+    $scope.uploadFiles = function(eid, files){
+        if ( files && files.length) {
+           for (var i = 0; i < files.length; i++) {
+              Upload.upload({
+                url: '/detect/recognize',
+                data: {file: files[i], 'eid': eid},
+                }).then(function (resp) {
+                    if(resp.data.status == 201){
+                        $("#report-file-upload-status").html("图片上传成功");
+                    }
+                    else{
+                        $("#report-file-upload-status").html("文件上传失败");
+                    }
+                }, function (resp) {
+                    $("#report-file-upload-status").html("图片上传失败:"+resp.status);
+                }, function (evt) {
+                    var progressPercentage = parseInt(100.0 * evt.loaded / evt.total);
+                    $("#report-file-upload-status").html('上传进度: ' + progressPercentage + '% ');
+                });
+           }
+      }
     };
     /* config object */
     $scope.uiConfig = {
